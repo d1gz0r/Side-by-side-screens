@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { 
+  font-family: 'Inter', sans-serif; 
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* For custom scrollbars that adapt to the theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Light theme scrollbar (default) */
+::-webkit-scrollbar-track {
+  background: #f1f5f9; /* slate-100 */
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+/* Dark theme scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #111827; /* gray-900 */
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151; /* gray-700 */
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4b5563; /* gray-600 */
+}
