@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Monitor } from '../types';
 import { PIXELS_PER_INCH, KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, SNAP_THRESHOLD, KEYBOARD_COLOR } from '../constants';
 import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon } from './Icons';
@@ -46,6 +46,45 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
   const [scale, setScale] = useState(1);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  const obscuredMonitors = useMemo(() => {
+    const newObscured = new Set<string>();
+    const visibleMonitors = monitors.filter(m => m.isVisible);
+
+    for (let i = 0; i < visibleMonitors.length; i++) {
+      for (let j = 0; j < visibleMonitors.length; j++) {
+        if (i === j) continue;
+
+        const monitorA = visibleMonitors[i]; // The one that might be obscured (bottom)
+        const monitorB = visibleMonitors[j]; // The one on top
+
+        // Only check if B is on top of A
+        if (monitorB.zIndex <= monitorA.zIndex) continue;
+
+        const widthA = (monitorA.isPortrait ? monitorA.heightInches : monitorA.widthInches) * PIXELS_PER_INCH;
+        const heightA = (monitorA.isPortrait ? monitorA.widthInches : monitorA.heightInches) * PIXELS_PER_INCH;
+        const areaA = widthA * heightA;
+
+        const widthB = (monitorB.isPortrait ? monitorB.heightInches : monitorB.widthInches) * PIXELS_PER_INCH;
+        const heightB = (monitorB.isPortrait ? monitorB.widthInches : monitorB.heightInches) * PIXELS_PER_INCH;
+        const areaB = widthB * heightB;
+
+        // Only obscure if the top monitor is smaller than the bottom one
+        if (areaB >= areaA) continue;
+
+        const overlaps =
+            monitorB.position.x < monitorA.position.x + widthA &&
+            monitorB.position.x + widthB > monitorA.position.x &&
+            monitorB.position.y < monitorA.position.y + heightA &&
+            monitorB.position.y + heightB > monitorA.position.y;
+
+        if (overlaps) {
+            newObscured.add(monitorA.id);
+        }
+      }
+    }
+    return newObscured;
+  }, [monitors]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -90,36 +129,55 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
     const draggedWidth = (draggedMonitor.isPortrait ? draggedMonitor.heightInches : draggedMonitor.widthInches) * PIXELS_PER_INCH;
     const draggedHeight = (draggedMonitor.isPortrait ? draggedMonitor.widthInches : draggedMonitor.heightInches) * PIXELS_PER_INCH;
     
+    let closestSnap = {
+        x: { dist: Infinity, pos: newX },
+        y: { dist: Infinity, pos: newY }
+    };
+
     monitors.forEach(monitor => {
       if (monitor.id === dragging.id || !monitor.isVisible) return;
       
       const staticWidth = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
       const staticHeight = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
       
-      const draggedEdges = { 
-        left: newX, right: newX + draggedWidth, top: newY, bottom: newY + draggedHeight,
-        centerX: newX + draggedWidth / 2, centerY: newY + draggedHeight / 2
-      };
       const staticEdges = { 
         left: monitor.position.x, right: monitor.position.x + staticWidth, top: monitor.position.y, bottom: monitor.position.y + staticHeight,
         centerX: monitor.position.x + staticWidth / 2, centerY: monitor.position.y + staticHeight / 2
       };
 
-      // Edge snapping
-      if (Math.abs(draggedEdges.right - staticEdges.left) < SNAP_THRESHOLD) newX = staticEdges.left - draggedWidth;
-      if (Math.abs(draggedEdges.left - staticEdges.right) < SNAP_THRESHOLD) newX = staticEdges.right;
-      if (Math.abs(draggedEdges.bottom - staticEdges.top) < SNAP_THRESHOLD) newY = staticEdges.top - draggedHeight;
-      if (Math.abs(draggedEdges.top - staticEdges.bottom) < SNAP_THRESHOLD) newY = staticEdges.bottom;
+      const xSnaps = [ staticEdges.left, staticEdges.right, staticEdges.left - draggedWidth, staticEdges.right - draggedWidth, staticEdges.centerX - draggedWidth / 2 ];
+      const ySnaps = [ staticEdges.top, staticEdges.bottom, staticEdges.top - draggedHeight, staticEdges.bottom - draggedHeight, staticEdges.centerY - draggedHeight / 2 ];
+      
+      xSnaps.forEach(snapPos => {
+          const dist = Math.abs(newX - snapPos);
+          if (dist < closestSnap.x.dist) {
+              closestSnap.x.dist = dist;
+              closestSnap.x.pos = snapPos;
+          }
+      });
 
-      // Center snapping
-      if (Math.abs(draggedEdges.centerX - staticEdges.centerX) < SNAP_THRESHOLD) newX = staticEdges.centerX - draggedWidth / 2;
-      if (Math.abs(draggedEdges.centerY - staticEdges.centerY) < SNAP_THRESHOLD) newY = staticEdges.centerY - draggedHeight / 2;
+      ySnaps.forEach(snapPos => {
+          const dist = Math.abs(newY - snapPos);
+          if (dist < closestSnap.y.dist) {
+              closestSnap.y.dist = dist;
+              closestSnap.y.pos = snapPos;
+          }
+      });
     });
+
+    if (closestSnap.x.dist < SNAP_THRESHOLD) {
+        newX = closestSnap.x.pos;
+    }
+    if (closestSnap.y.dist < SNAP_THRESHOLD) {
+        newY = closestSnap.y.pos;
+    }
 
     onUpdateMonitor(dragging.id, { position: { x: newX, y: newY } });
   }, [dragging, monitors, onUpdateMonitor, onUpdateKeyboardPosition, scale]);
 
-  const handleMouseUp = useCallback(() => { setDragging(null); }, []);
+  const handleMouseUp = useCallback(() => {
+    setDragging(null);
+  }, []);
 
   const handleRotate = useCallback((id: string) => {
     const monitor = monitors.find(m => m.id === id);
@@ -188,6 +246,7 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
                 monitor={monitor}
                 scale={scale}
                 isDragging={isDragging}
+                isObscured={obscuredMonitors.has(monitor.id)}
                 onMouseDown={handleMouseDown}
                 onRotate={handleRotate}
               />

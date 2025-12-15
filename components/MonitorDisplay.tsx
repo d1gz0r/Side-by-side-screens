@@ -8,11 +8,12 @@ interface MonitorDisplayProps {
   monitor: Monitor;
   scale: number;
   isDragging: boolean;
+  isObscured: boolean;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
   onRotate: (id: string) => void;
 }
 
-const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, onMouseDown, onRotate }) => {
+const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate }) => {
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   
@@ -44,6 +45,8 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
     </div>
   );
 
+  const shouldTextBeOutside = isOverflowing || isObscured;
+
   return (
     <div
       onMouseDown={(e) => onMouseDown(e, monitor.id)}
@@ -63,7 +66,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
         style={{
           fontSize: '10px',
           lineHeight: '1.2',
-          ...(isOverflowing
+          ...(shouldTextBeOutside
             ? {
                 transform: `scale(${1 / scale})`,
                 transformOrigin: 'bottom right',
