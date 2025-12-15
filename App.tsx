@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Monitor } from './types';
 import { MONITOR_COLORS } from './constants';
+import { calculateMonitorSpecs } from './utils';
 import MonitorForm from './components/MonitorForm';
 import MonitorList from './components/MonitorList';
 import Preview from './components/Preview';
@@ -9,26 +10,17 @@ import { KeyboardIcon, MenuIcon, CloseIcon, ChevronLeftIcon, ChevronRightIcon, S
 
 type Theme = 'light' | 'dark';
 
+// Generate default monitors using the shared utility to ensure consistency
 const createDefaultMonitors = (): Monitor[] => {
   // Monitor 1: 27" QHD Landscape
-  const monitor1Diag = 27;
-  const monitor1AR = { w: 16, h: 9 };
-  const monitor1Res = { w: 2560, h: 1440 };
-  const m1DiagPx = Math.sqrt(monitor1Res.w ** 2 + monitor1Res.h ** 2);
-  const m1Ppi = m1DiagPx / monitor1Diag;
-  const m1Ratio = Math.sqrt(monitor1AR.w ** 2 + monitor1AR.h ** 2);
-  const m1WidthInches = (monitor1Diag * monitor1AR.w) / m1Ratio;
-  const m1HeightInches = (monitor1Diag * monitor1AR.h) / m1Ratio;
-
+  const m1Specs = calculateMonitorSpecs(27, { w: 16, h: 9 }, { w: 2560, h: 1440 });
   const monitor1: Monitor = {
     id: 'monitor-1',
     name: 'Sample monitor 1',
-    diagonal: monitor1Diag,
-    aspectRatio: monitor1AR,
-    resolution: monitor1Res,
-    ppi: m1Ppi,
-    widthInches: m1WidthInches,
-    heightInches: m1HeightInches,
+    diagonal: 27,
+    aspectRatio: { w: 16, h: 9 },
+    resolution: { w: 2560, h: 1440 },
+    ...m1Specs,
     isVisible: true,
     isPortrait: false,
     position: { x: 100, y: 150 },
@@ -37,24 +29,14 @@ const createDefaultMonitors = (): Monitor[] => {
   };
 
   // Monitor 2: 24" FHD Portrait
-  const monitor2Diag = 24;
-  const monitor2AR = { w: 16, h: 9 };
-  const monitor2Res = { w: 1920, h: 1080 };
-  const m2DiagPx = Math.sqrt(monitor2Res.w ** 2 + monitor2Res.h ** 2);
-  const m2Ppi = m2DiagPx / monitor2Diag;
-  const m2Ratio = Math.sqrt(monitor2AR.w ** 2 + monitor2AR.h ** 2);
-  const m2WidthInches = (monitor2Diag * monitor2AR.w) / m2Ratio;
-  const m2HeightInches = (monitor2Diag * monitor2AR.h) / m2Ratio;
-  
+  const m2Specs = calculateMonitorSpecs(24, { w: 16, h: 9 }, { w: 1920, h: 1080 });
   const monitor2: Monitor = {
     id: 'monitor-2',
     name: 'Sample monitor 2',
-    diagonal: monitor2Diag,
-    aspectRatio: monitor2AR,
-    resolution: monitor2Res,
-    ppi: m2Ppi,
-    widthInches: m2WidthInches,
-    heightInches: m2HeightInches,
+    diagonal: 24,
+    aspectRatio: { w: 16, h: 9 },
+    resolution: { w: 1920, h: 1080 },
+    ...m2Specs,
     isVisible: true,
     isPortrait: true,
     position: { x: 400, y: 100 },
@@ -64,7 +46,6 @@ const createDefaultMonitors = (): Monitor[] => {
 
   return [monitor1, monitor2];
 };
-
 
 const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void }> = ({ theme, setTheme }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -131,12 +112,11 @@ const App: React.FC = () => {
   const [isSidebarVisibleDesktop, setIsSidebarVisibleDesktop] = useState(true);
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      return savedTheme;
-    }
+    if (savedTheme) return savedTheme;
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
+  // Apply theme class to root
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -147,6 +127,9 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Intelligent Z-Index Sorting:
+  // Smaller monitors (by area) should visually sit "on top" of larger ones
+  // to prevent them from getting lost behind larger screens.
   useEffect(() => {
     if (monitors.length === 0) return;
 
@@ -156,6 +139,7 @@ const App: React.FC = () => {
         idNum: parseInt(m.id.split('-')[1])
     }));
     
+    // Sort by area descending (largest first), then by ID
     monitorsWithArea.sort((a, b) => {
         if (a.area !== b.area) return b.area - a.area;
         return a.idNum - b.idNum;
@@ -164,6 +148,7 @@ const App: React.FC = () => {
     const zIndexMap = new Map<string, number>();
     monitorsWithArea.forEach((m, index) => zIndexMap.set(m.id, index + 1));
 
+    // Only update state if Z-indices actually changed to avoid infinite loops
     if (monitors.some(m => m.zIndex !== zIndexMap.get(m.id))) {
         setMonitors(prev => prev.map(m => ({ ...m, zIndex: zIndexMap.get(m.id) || 1 })));
     }
@@ -171,12 +156,11 @@ const App: React.FC = () => {
 
   const addMonitor = useCallback((newMonitorData: Omit<Monitor, 'id' | 'name' | 'ppi' | 'widthInches' | 'heightInches' | 'isVisible' | 'isPortrait' | 'position' | 'zIndex' | 'color'>) => {
     const { diagonal, aspectRatio, resolution } = newMonitorData;
-    const diagonalPixels = Math.sqrt(resolution.w ** 2 + resolution.h ** 2);
-    const ppi = diagonalPixels / diagonal;
-    const ratio = Math.sqrt(aspectRatio.w ** 2 + aspectRatio.h ** 2);
-    const widthInches = (diagonal * aspectRatio.w) / ratio;
-    const heightInches = (diagonal * aspectRatio.h) / ratio;
     
+    // Calculate derived specs (PPI, Dimensions)
+    const specs = calculateMonitorSpecs(diagonal, aspectRatio, resolution);
+    
+    // Cycle through available colors
     const usedColors = monitors.map(m => m.color);
     const availableColors = MONITOR_COLORS.filter(c => !usedColors.includes(c));
     const color = availableColors.length > 0 ? availableColors[0] : MONITOR_COLORS[monitors.length % MONITOR_COLORS.length];
@@ -185,7 +169,7 @@ const App: React.FC = () => {
       ...newMonitorData,
       id: `monitor-${nextId}`,
       name: `Monitor ${nextId}`,
-      ppi, widthInches, heightInches,
+      ...specs,
       isVisible: true, isPortrait: false,
       position: { x: 20, y: 20 + (monitors.length * 30) % 200 },
       zIndex: 0, color,

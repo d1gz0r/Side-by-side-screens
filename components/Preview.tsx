@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Monitor } from '../types';
 import MonitorDisplay from './MonitorDisplay';
-import { KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, PIXELS_PER_INCH, KEYBOARD_COLOR, SNAP_THRESHOLD } from '../constants';
+import { KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, PIXELS_PER_INCH, KEYBOARD_COLOR } from '../constants';
+import { getSnappedPosition, getMonitorRect } from '../utils';
 import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon } from './Icons';
 
 type Theme = 'light' | 'dark';
@@ -77,6 +78,7 @@ const Preview: React.FC<PreviewProps> = ({
   const previewRef = useRef<HTMLDivElement>(null);
   const pinchDistRef = useRef<number | null>(null);
 
+  // Helper to handle zooming via wheel or buttons
   const handleZoom = (delta: number, clientX?: number, clientY?: number) => {
     const preview = previewRef.current;
     if (!preview) return;
@@ -84,6 +86,7 @@ const Preview: React.FC<PreviewProps> = ({
     const newScale = Math.max(0.1, Math.min(5, scale * delta));
     const rect = preview.getBoundingClientRect();
 
+    // Zoom towards mouse pointer or center
     const mouseX = (clientX ?? rect.left + rect.width / 2) - rect.left;
     const mouseY = (clientY ?? rect.top + rect.height / 2) - rect.top;
 
@@ -96,7 +99,6 @@ const Preview: React.FC<PreviewProps> = ({
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    // Standard mouse wheel and trackpad pinch zoom
     handleZoom(e.deltaY > 0 ? 0.9 : 1.1, e.clientX, e.clientY);
   };
 
@@ -112,6 +114,7 @@ const Preview: React.FC<PreviewProps> = ({
     const previewRect = previewRef.current?.getBoundingClientRect();
     if (!previewRect) return;
   
+    // Calculate initial offset to ensure object doesn't jump to top-left corner of mouse
     const mouseX = (clientX - previewRect.left - pan.x) / scale;
     const mouseY = (clientY - previewRect.top - pan.y) / scale;
   
@@ -137,6 +140,7 @@ const Preview: React.FC<PreviewProps> = ({
   }, []);
 
   const handleInteractionMove = useCallback((e: MouseEvent | TouchEvent) => {
+    // Handle Pinch-to-Zoom
     if ('touches' in e && e.touches.length === 2 && pinchDistRef.current !== null) {
         const p1 = e.touches[0];
         const p2 = e.touches[1];
@@ -152,11 +156,13 @@ const Preview: React.FC<PreviewProps> = ({
     if (!point) return;
     const { clientX, clientY } = point;
 
+    // Handle Panning
     if (isPanning) {
       setPan({ x: clientX - panStart.x, y: clientY - panStart.y });
       return;
     }
     
+    // Handle Dragging
     if (!dragging) return;
 
     const previewRect = previewRef.current?.getBoundingClientRect();
@@ -173,55 +179,13 @@ const Preview: React.FC<PreviewProps> = ({
         return;
       }
       
-      const dimensions = keyboardSize === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
-      const kbdWidth = dimensions.width * PIXELS_PER_INCH;
-      const kbdHeight = dimensions.height * PIXELS_PER_INCH;
-      
-      const kbdEdges = {
-        left: newX, right: newX + kbdWidth, top: newY, bottom: newY + kbdHeight,
-        centerX: newX + kbdWidth / 2, centerY: newY + kbdHeight / 2,
-      };
-
-      let bestSnapX = { delta: SNAP_THRESHOLD, value: newX };
-      let bestSnapY = { delta: SNAP_THRESHOLD, value: newY };
-
-      for (const monitor of monitors) {
-        if (!monitor.isVisible) continue;
-        const monitorRect = getMonitorRect(monitor);
-        const monEdges = {
-          left: monitorRect.left, right: monitorRect.right, top: monitorRect.top, bottom: monitorRect.bottom,
-          centerX: monitorRect.left + monitorRect.width / 2, centerY: monitorRect.top + monitorRect.height / 2,
-        };
-
-        const xChecks = [
-          { kbd: kbdEdges.left, mon: monEdges.left, newPos: monEdges.left },
-          { kbd: kbdEdges.left, mon: monEdges.right, newPos: monEdges.right },
-          { kbd: kbdEdges.right, mon: monEdges.left, newPos: monEdges.left - kbdWidth },
-          { kbd: kbdEdges.right, mon: monEdges.right, newPos: monEdges.right - kbdWidth },
-          { kbd: kbdEdges.centerX, mon: monEdges.centerX, newPos: monEdges.centerX - kbdWidth / 2 },
-        ];
-        for (const check of xChecks) {
-          const delta = Math.abs(check.kbd - check.mon);
-          if (delta < bestSnapX.delta) bestSnapX = { delta, value: check.newPos };
-        }
-
-        const yChecks = [
-          { kbd: kbdEdges.top, mon: monEdges.top, newPos: monEdges.top },
-          { kbd: kbdEdges.top, mon: monEdges.bottom, newPos: monEdges.bottom },
-          { kbd: kbdEdges.bottom, mon: monEdges.top, newPos: monEdges.top - kbdHeight },
-          { kbd: kbdEdges.bottom, mon: monEdges.bottom, newPos: monEdges.bottom - kbdHeight },
-          { kbd: kbdEdges.centerY, mon: monEdges.centerY, newPos: monEdges.centerY - kbdHeight / 2 },
-        ];
-        for (const check of yChecks) {
-          const delta = Math.abs(check.kbd - check.mon);
-          if (delta < bestSnapY.delta) bestSnapY = { delta, value: check.newPos };
-        }
-      }
-      
-      onUpdateKeyboardPosition({ x: bestSnapX.value, y: bestSnapY.value });
+      // Use utility for complex snapping logic
+      const snappedPos = getSnappedPosition(newX, newY, keyboardSize, monitors);
+      onUpdateKeyboardPosition(snappedPos);
     }
   }, [dragging, isPanning, panStart, scale, pan, onUpdateMonitor, onUpdateKeyboardPosition, monitors, keyboardSize]);
 
+  // Set up global event listeners for dragging/panning
   useEffect(() => {
     const handleMove = (e: MouseEvent) => handleInteractionMove(e);
     const handleUp = () => handleInteractionEnd();
@@ -272,25 +236,13 @@ const Preview: React.FC<PreviewProps> = ({
     }
   };
 
-  const getMonitorRect = (monitor: Monitor) => {
-    const width = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
-    const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
-    return {
-      left: monitor.position.x,
-      right: monitor.position.x + width,
-      top: monitor.position.y,
-      bottom: monitor.position.y + height,
-      width,
-      height
-    };
-  };
-
   const isObscured = useCallback((monitorId: string): boolean => {
     const targetMonitor = monitors.find(m => m.id === monitorId);
     if (!targetMonitor) return false;
 
     const targetRect = getMonitorRect(targetMonitor);
 
+    // Simple AABB collision detection to see if monitor is covered by a higher z-index monitor
     for (const otherMonitor of monitors) {
       if (otherMonitor.id === monitorId || !otherMonitor.isVisible) continue;
       

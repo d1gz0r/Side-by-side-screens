@@ -1,20 +1,45 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Side-by-Side Screens
 
-This contains everything you need to run your app locally.
+An interactive web application designed to help users compare PC monitors visually and statistically.
 
-View your app in AI Studio: https://ai.studio/apps/drive/15LQnWIeMv3HcaZ6VVFSDApSb11XlHvvj
+## Features
 
-## Run Locally
+-   **Visual Comparison:** Drag and drop monitors on a virtual canvas to see how they look next to each other.
+-   **Scale Reference:** Includes a draggable keyboard (100% or 75% size) that snaps to monitor edges for accurate size reference.
+-   **Specs Calculation:** Automatically calculates PPI (Pixels Per Inch) and physical dimensions based on diagonal size, aspect ratio, and resolution.
+-   **Orientation:** Easily toggle monitors between Landscape and Portrait modes.
+-   **Layering:** Smaller monitors automatically layer on top of larger ones for better visibility.
+-   **Theme:** Fully supported Dark Mode and Light Mode.
+-   **Responsive:** Works on desktop and mobile devices with touch support.
 
-**Prerequisites:**  Node.js
+## Tech Stack
 
+-   **React:** For UI components and state management.
+-   **TypeScript:** For type safety and better developer experience.
+-   **Tailwind CSS:** For rapid, responsive styling.
+-   **Vite/ESBuild:** (Implied by current structure) for fast bundling.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Setup & Usage
+
+1.  **Clone the repository.**
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+4.  **Open in Browser:** Navigate to the local server address (usually `http://localhost:5173`).
+
+## Usage Guide
+
+1.  **Add Monitors:** Use the sidebar form to input diagonal size, aspect ratio, and resolution. Presets are available for common configurations.
+2.  **Arrange:** Drag monitors around the main preview area.
+3.  **Keyboard Scale:** Enable the keyboard from the sidebar list to see a physical size reference. Drag it near monitors to snap it to edges.
+4.  **Controls:** Use the eye icon to hide monitors, the rotate icon to change orientation, and the trash icon to remove them.
+
+## License
+
+MIT
