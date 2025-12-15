@@ -41,8 +41,8 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
   }, [width, height, scale, monitor.name, monitor.diagonal, monitor.resolution]);
 
   const textContent = (
-    <div ref={textRef}>
-      <b className="whitespace-nowrap">{monitor.name}</b><br />
+    <div ref={textRef} className="font-mono">
+      <b className="whitespace-nowrap font-sans font-bold">{monitor.name}</b><br />
       <span className="whitespace-nowrap">{monitor.diagonal}"</span><br />
       <span className="whitespace-nowrap">{monitor.resolution.w}x{monitor.resolution.h}</span>
     </div>
@@ -51,11 +51,12 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
   const shouldTextBeOutside = isOverflowing || isObscured;
 
   const themeClasses = {
-    bg: theme === 'dark' ? 'bg-black/50' : 'bg-gray-500/30',
-    text: theme === 'dark' ? 'text-white/80' : 'text-black/80',
-    outsideLabelBg: theme === 'dark' ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-    rotateButtonBg: theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-200',
-    rotateButtonText: theme === 'dark' ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-500 hover:text-cyan-600',
+    bg: theme === 'dark' ? 'bg-black/50' : 'bg-slate-400/30',
+    text: theme === 'dark' ? 'text-white/80' : 'text-slate-900/80',
+    outsideLabelBg: theme === 'dark' ? 'rgba(10, 10, 10, 0.9)' : 'rgba(248, 250, 252, 0.9)',
+    outsideLabelBorder: theme === 'dark' ? 'border border-gray-800' : 'border border-slate-200',
+    rotateButtonBg: theme === 'dark' ? 'bg-gray-900 hover:bg-gray-800' : 'bg-white hover:bg-slate-200',
+    rotateButtonText: theme === 'dark' ? 'text-gray-400 hover:text-cyan-400' : 'text-slate-500 hover:text-cyan-500',
   };
 
   return (
@@ -69,7 +70,6 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
         top: `${monitor.position.y}px`,
         zIndex: monitor.zIndex,
         borderColor: isDragging ? '#00ffff' : monitor.color,
-        boxShadow: isDragging ? `0 0 20px ${monitor.color}60` : 'none',
       }}
     >
       <div 
@@ -88,6 +88,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
                 borderRadius: '4px',
                 marginBottom: '4px',
                 marginRight: '4px',
+                border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e5e7eb',
               }
             : {
                 top: '50%',
@@ -104,7 +105,8 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
       </div>
       <button
           onClick={(e) => { e.stopPropagation(); onRotate(monitor.id); }}
-          className={`absolute -top-2 -right-2 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 ${themeClasses.rotateButtonBg} ${themeClasses.rotateButtonText}`}
+          className={`absolute top-0 right-0 p-1 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} ${themeClasses.rotateButtonBg} ${themeClasses.rotateButtonText}`}
+          style={{ transform: 'translate(50%, -50%)'}}
           title="Rotate"
       >
           <RotateIcon />

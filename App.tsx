@@ -24,16 +24,16 @@ const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void }
   }, []);
 
   const buttonClasses = theme === 'dark'
-    ? 'bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300'
-    : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700';
+    ? 'bg-gray-900 border-gray-700 hover:bg-gray-800 hover:border-gray-600 text-gray-300'
+    : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700';
   
   const menuClasses = theme === 'dark'
-    ? 'bg-gray-800 border-gray-700'
-    : 'bg-white border-gray-300';
+    ? 'bg-gray-900 border-gray-700'
+    : 'bg-white border-slate-300';
 
   const menuItemClasses = theme === 'dark'
-    ? 'hover:bg-gray-700'
-    : 'hover:bg-gray-100';
+    ? 'hover:bg-gray-800'
+    : 'hover:bg-slate-100';
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -144,27 +144,28 @@ const App: React.FC = () => {
   const updateKeyboardPosition = useCallback((position: { x: number, y: number }) => setKeyboardPosition(position), []);
 
   const themeClasses = {
-    bg: theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100',
-    text: theme === 'dark' ? 'text-gray-200' : 'text-gray-800',
-    headerText: theme === 'dark' ? 'text-white' : 'text-black',
-    subHeaderText: theme === 'dark' ? 'text-gray-400' : 'text-gray-600',
-    sidebarBg: theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100',
-    cardBg: theme === 'dark' ? 'bg-gray-800/50' : 'bg-white/80',
-    border: theme === 'dark' ? 'border-gray-700' : 'border-gray-300',
-    accentText: theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600',
-    icon: theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black',
-    kbdButtonBg: theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-200/50',
-    kbdButton: theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-300 hover:bg-gray-400 text-gray-700',
-    kbdButtonActive: theme === 'dark' ? 'bg-cyan-600 text-white' : 'bg-cyan-500 text-white',
-    sidebarToggleBg: theme === 'dark' ? 'bg-gray-700 border-gray-900' : 'bg-white border-gray-100',
+    bg: theme === 'dark' ? 'bg-gray-900' : 'bg-slate-100',
+    text: theme === 'dark' ? 'text-gray-300' : 'text-slate-800',
+    headerText: theme === 'dark' ? 'text-gray-100' : 'text-slate-900',
+    subHeaderText: theme === 'dark' ? 'text-gray-500' : 'text-slate-500',
+    sidebarBg: theme === 'dark' ? 'bg-gray-900' : 'bg-slate-100',
+    cardBg: theme === 'dark' ? 'bg-gray-950/60' : 'bg-white/80',
+    border: theme === 'dark' ? 'border-white/10' : 'border-slate-200',
+    accentText: theme === 'dark' ? 'text-cyan-400' : 'text-cyan-500',
+    icon: theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-slate-500 hover:text-slate-900',
+    kbdButtonBg: theme === 'dark' ? 'bg-black/30' : 'bg-slate-200/50',
+    kbdButton: theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700 text-gray-400' : 'bg-slate-200 hover:bg-slate-300 text-slate-700',
+    kbdButtonActive: theme === 'dark' ? 'bg-cyan-500 text-white' : 'bg-cyan-500 text-white',
+    sidebarToggleBg: theme === 'dark' ? 'bg-gray-950 border-gray-900' : 'bg-white border-slate-200',
+    sidebarToggleIcon: theme === 'dark' ? 'text-gray-400' : 'text-slate-600',
   };
 
   return (
-    <div className={`h-screen font-sans p-4 lg:p-6 flex flex-col ${themeClasses.bg} ${themeClasses.text}`}>
-      <header className="flex justify-between items-baseline gap-3 flex-shrink-0 mb-4">
+    <div className={`h-screen p-4 lg:p-6 flex flex-col ${themeClasses.bg} ${themeClasses.text}`}>
+      <header className="flex justify-between items-center gap-3 flex-shrink-0 mb-4">
         <div className="flex items-baseline gap-3">
-          <h1 className={`text-xl font-bold whitespace-nowrap ${themeClasses.headerText}`}>Side-by-side screens</h1>
-          <p className={`text-sm truncate ${themeClasses.subHeaderText}`}>A simple monitor comparison tool</p>
+          <h1 className={`text-xl font-bold whitespace-nowrap ${themeClasses.headerText}`}>Side-by-Side Screens</h1>
+          <p className={`text-sm truncate hidden sm:block ${themeClasses.subHeaderText}`}>A simple monitor comparison tool</p>
         </div>
         <ThemeSwitcher theme={theme} setTheme={setTheme} />
       </header>
@@ -172,35 +173,35 @@ const App: React.FC = () => {
         {isSidebarOpen && (
           <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
         )}
-        <aside className={`fixed top-0 left-0 w-full max-w-sm h-full p-4 flex-shrink-0 flex-col gap-4 z-40 transition-all duration-300 ease-in-out lg:relative lg:flex lg:max-w-none lg:p-0 bg-transparent lg:translate-x-0 overflow-hidden ${isSidebarOpen ? `translate-x-0 ${themeClasses.sidebarBg}` : '-translate-x-full'} ${isSidebarVisibleDesktop ? 'lg:w-96 xl:w-[420px]' : 'lg:w-0 lg:p-0'}`}>
-          <div className={`backdrop-blur-sm border rounded-lg p-4 ${themeClasses.cardBg} ${themeClasses.border}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h1 className={`text-2xl font-bold ${themeClasses.accentText}`}>Monitor specs</h1>
+        <aside className={`fixed top-0 left-0 w-full max-w-sm h-full p-4 flex-shrink-0 flex flex-col gap-4 z-40 transition-all duration-300 ease-in-out lg:relative lg:max-w-none lg:p-0 bg-transparent lg:translate-x-0 overflow-hidden ${isSidebarOpen ? `translate-x-0 ${themeClasses.sidebarBg}` : '-translate-x-full'} ${isSidebarVisibleDesktop ? 'lg:w-96 xl:w-[420px]' : 'lg:w-0 lg:p-0'}`}>
+          <div className={`backdrop-blur-sm border rounded-md p-4 space-y-4 flex flex-col ${themeClasses.cardBg} ${themeClasses.border}`}>
+            <div className="flex justify-between items-center">
+              <h2 className={`text-lg font-bold ${themeClasses.accentText}`}>Monitor Specs</h2>
               <button onClick={() => setIsSidebarOpen(false)} className={`lg:hidden ${themeClasses.icon}`}>
                 <CloseIcon />
               </button>
             </div>
             <MonitorForm onAddMonitor={addMonitor} theme={theme} />
           </div>
-          <div className={`backdrop-blur-sm border rounded-lg p-4 flex-grow flex flex-col min-h-0 ${themeClasses.cardBg} ${themeClasses.border}`}>
+          <div className={`backdrop-blur-sm border rounded-md p-4 flex-grow flex flex-col min-h-0 ${themeClasses.cardBg} ${themeClasses.border}`}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className={`text-xl font-bold ${themeClasses.accentText}`}>Monitor list</h2>
+              <h2 className={`text-lg font-bold ${themeClasses.accentText}`}>Monitor List</h2>
               <div className={`flex items-center gap-1 p-0.5 rounded-md border ${themeClasses.kbdButtonBg} ${themeClasses.border}`}>
                 <span className={`text-sm px-2 flex items-center gap-1.5 ${themeClasses.subHeaderText}`} title="Keyboard for scale"><KeyboardIcon/></span>
-                <button onClick={() => setKeyboardSize('hidden')} className={`px-2 py-0.5 rounded text-xs transition-colors ${keyboardSize === 'hidden' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>Off</button>
-                <button onClick={() => setKeyboardSize('75%')} className={`px-2 py-0.5 rounded text-xs transition-colors ${keyboardSize === '75%' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>75%</button>
-                <button onClick={() => setKeyboardSize('100%')} className={`px-2 py-0.5 rounded text-xs transition-colors ${keyboardSize === '100%' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>100%</button>
+                <button onClick={() => setKeyboardSize('hidden')} className={`px-2 py-0.5 rounded-sm text-xs transition-colors ${keyboardSize === 'hidden' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>Off</button>
+                <button onClick={() => setKeyboardSize('75%')} className={`px-2 py-0.5 rounded-sm text-xs transition-colors ${keyboardSize === '75%' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>75%</button>
+                <button onClick={() => setKeyboardSize('100%')} className={`px-2 py-0.5 rounded-sm text-xs transition-colors ${keyboardSize === '100%' ? themeClasses.kbdButtonActive : themeClasses.kbdButton}`}>100%</button>
               </div>
             </div>
             <MonitorList monitors={monitors} onDelete={deleteMonitor} onUpdateMonitor={updateMonitorConfig} onRename={renameMonitor} theme={theme} />
           </div>
         </aside>
-        <main className={`flex-grow bg-gray-800/20 rounded-lg relative border lg:min-w-0 ${themeClasses.border}`}>
+        <main className={`flex-grow rounded-md relative border lg:min-w-0 ${themeClasses.border}`}>
           <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden absolute top-4 left-4 z-20 p-2 backdrop-blur-sm rounded-md border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.subHeaderText} hover:text-cyan-400`}>
             <MenuIcon />
           </button>
-          <button onClick={() => setIsSidebarVisibleDesktop(v => !v)} title={isSidebarVisibleDesktop ? 'Collapse Sidebar' : 'Expand Sidebar'} className={`hidden lg:flex items-center justify-center absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-20 w-8 h-8 rounded-full text-white hover:bg-cyan-600 transition-all border-2 ${themeClasses.sidebarToggleBg}`}>
-            {isSidebarVisibleDesktop ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          <button onClick={() => setIsSidebarVisibleDesktop(v => !v)} title={isSidebarVisibleDesktop ? 'Collapse Sidebar' : 'Expand Sidebar'} className={`hidden lg:flex items-center justify-center absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-20 w-7 h-7 rounded-full transition-all border-2 ${themeClasses.sidebarToggleBg} hover:bg-cyan-500/20`}>
+            {isSidebarVisibleDesktop ? <ChevronLeftIcon className={themeClasses.sidebarToggleIcon} /> : <ChevronRightIcon className={themeClasses.sidebarToggleIcon} />}
           </button>
           <Preview monitors={monitors} keyboardSize={keyboardSize} onUpdateMonitor={updateMonitorConfig} keyboardPosition={keyboardPosition} onUpdateKeyboardPosition={updateKeyboardPosition} theme={theme} />
         </main>

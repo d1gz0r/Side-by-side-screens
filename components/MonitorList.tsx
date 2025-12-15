@@ -35,18 +35,18 @@ const MonitorListItem: React.FC<{ monitor: Monitor; onDelete: (id: string) => vo
   }, [isEditing]);
 
   const themeClasses = {
-    bg: theme === 'dark' ? 'bg-gray-700/50 hover:bg-gray-700/80' : 'bg-white hover:bg-gray-50',
-    title: theme === 'dark' ? 'text-white' : 'text-gray-900',
-    subtitle: theme === 'dark' ? 'text-gray-400' : 'text-gray-500',
-    textLabel: theme === 'dark' ? 'text-gray-400' : 'text-gray-500',
-    accentText: theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600',
-    iconButton: theme === 'dark' ? 'text-gray-400 hover:text-cyan-400 hover:bg-gray-600/50' : 'text-gray-500 hover:text-cyan-600 hover:bg-gray-200/50',
-    deleteButton: theme === 'dark' ? 'text-gray-400 hover:text-red-500 hover:bg-gray-600/50' : 'text-gray-500 hover:text-red-500 hover:bg-gray-200/50',
-    inputBg: theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-black',
+    bg: theme === 'dark' ? 'bg-gray-900/50 hover:bg-gray-900/80' : 'bg-white/50 hover:bg-slate-50/80',
+    title: theme === 'dark' ? 'text-gray-100' : 'text-slate-900',
+    subtitle: theme === 'dark' ? 'text-gray-500' : 'text-slate-500',
+    textLabel: theme === 'dark' ? 'text-gray-400' : 'text-slate-600',
+    accentText: theme === 'dark' ? 'text-cyan-400' : 'text-cyan-500',
+    iconButton: theme === 'dark' ? 'text-gray-500 hover:text-cyan-400 hover:bg-gray-800/80' : 'text-slate-500 hover:text-cyan-500 hover:bg-slate-200/50',
+    deleteButton: theme === 'dark' ? 'text-gray-500 hover:text-red-500 hover:bg-gray-800/80' : 'text-slate-500 hover:text-red-500 hover:bg-slate-200/50',
+    inputBg: theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-slate-200 text-slate-900',
   };
 
   return (
-    <div className={`rounded-lg p-3 transition-colors ${themeClasses.bg}`} style={{ borderLeft: `4px solid ${monitor.color}` }}>
+    <div className={`rounded-md p-3 transition-colors ${themeClasses.bg}`} style={{ borderLeft: `3px solid ${monitor.color}` }}>
       <div className="flex justify-between items-start">
         <div className="flex-grow min-w-0 pr-2">
           {isEditing ? (
@@ -56,24 +56,24 @@ const MonitorListItem: React.FC<{ monitor: Monitor; onDelete: (id: string) => vo
               onChange={(e) => setName(e.target.value)}
               onBlur={handleRename}
               onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setIsEditing(false); }}
-              className={`font-bold rounded px-1 -mx-1 w-full ${themeClasses.inputBg}`}
+              className={`font-bold rounded-sm px-1 -mx-1 w-full text-sm ${themeClasses.inputBg}`}
             />
           ) : (
-            <h3 className={`font-bold cursor-pointer truncate ${themeClasses.title}`} title={`Click to rename ${monitor.name}`} onClick={() => setIsEditing(true)}>
+            <h3 className={`font-bold cursor-pointer truncate text-sm ${themeClasses.title}`} title={`Click to rename ${monitor.name}`} onClick={() => setIsEditing(true)}>
               {monitor.name}
             </h3>
           )}
-          <p className={`text-sm ${themeClasses.subtitle}`}>{monitor.diagonal}" | {monitor.aspectRatio.w}:{monitor.aspectRatio.h} | {monitor.resolution.w}x{monitor.resolution.h}</p>
+          <p className={`text-xs font-mono ${themeClasses.subtitle}`}>{monitor.diagonal}" | {monitor.aspectRatio.w}:{monitor.aspectRatio.h} | {monitor.resolution.w}x{monitor.resolution.h}</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={() => onUpdateMonitor(monitor.id, { isPortrait: !monitor.isPortrait })} title="Rotate" className={`p-1.5 rounded transition-colors ${themeClasses.iconButton}`}><RotateIcon /></button>
-          <button onClick={() => onUpdateMonitor(monitor.id, { isVisible: !monitor.isVisible })} title={monitor.isVisible ? 'Hide' : 'Show'} className={`p-1.5 rounded transition-colors ${themeClasses.iconButton}`}>
+        <div className="flex items-center gap-1 flex-shrink-0 -mr-1">
+          <button onClick={() => onUpdateMonitor(monitor.id, { isPortrait: !monitor.isPortrait })} title="Rotate" className={`p-1.5 rounded-sm transition-colors ${themeClasses.iconButton}`}><RotateIcon /></button>
+          <button onClick={() => onUpdateMonitor(monitor.id, { isVisible: !monitor.isVisible })} title={monitor.isVisible ? 'Hide' : 'Show'} className={`p-1.5 rounded-sm transition-colors ${themeClasses.iconButton}`}>
             {monitor.isVisible ? <EyeOpenIcon /> : <EyeClosedIcon />}
           </button>
-          <button onClick={() => onDelete(monitor.id)} title="Delete" className={`p-1.5 rounded transition-colors ${themeClasses.deleteButton}`}><DeleteIcon /></button>
+          <button onClick={() => onDelete(monitor.id)} title="Delete" className={`p-1.5 rounded-sm transition-colors ${themeClasses.deleteButton}`}><DeleteIcon /></button>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
         <div className={themeClasses.textLabel}>PPI:</div>
         <div className={`font-mono text-right ${themeClasses.accentText}`}>{monitor.ppi.toFixed(2)}</div>
         
@@ -90,12 +90,12 @@ const MonitorListItem: React.FC<{ monitor: Monitor; onDelete: (id: string) => vo
 
 const MonitorList: React.FC<MonitorListProps> = ({ monitors, onDelete, onUpdateMonitor, onRename, theme }) => {
   if (monitors.length === 0) {
-    const textColor = theme === 'dark' ? 'text-gray-500' : 'text-gray-400';
-    return <p className={`text-center italic mt-4 ${textColor}`}>Add a monitor to start comparing.</p>;
+    const textColor = theme === 'dark' ? 'text-gray-600' : 'text-slate-400';
+    return <p className={`text-center italic mt-4 text-sm ${textColor}`}>Add a monitor to start comparing.</p>;
   }
 
   return (
-    <div className="space-y-3 overflow-y-auto pr-1 flex-grow">
+    <div className="space-y-2.5 overflow-y-auto pr-1 -mr-1 flex-grow">
       {monitors.map(monitor => (
         <MonitorListItem 
           key={monitor.id}
