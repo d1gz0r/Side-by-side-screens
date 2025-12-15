@@ -4,6 +4,8 @@ import { Monitor } from '../types';
 import { PIXELS_PER_INCH } from '../constants';
 import { RotateIcon } from './Icons';
 
+type Theme = 'light' | 'dark';
+
 interface MonitorDisplayProps {
   monitor: Monitor;
   scale: number;
@@ -11,9 +13,10 @@ interface MonitorDisplayProps {
   isObscured: boolean;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
   onRotate: (id: string) => void;
+  theme: Theme;
 }
 
-const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate }) => {
+const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate, theme }) => {
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   
@@ -24,7 +27,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
     if (textRef.current) {
       const textWidth = textRef.current.scrollWidth;
       const textHeight = textRef.current.scrollHeight;
-      const padding = 16; // A bit of padding
+      const padding = 16; 
 
       const monitorVisibleWidth = width * scale;
       const monitorVisibleHeight = height * scale;
@@ -47,10 +50,18 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
 
   const shouldTextBeOutside = isOverflowing || isObscured;
 
+  const themeClasses = {
+    bg: theme === 'dark' ? 'bg-black/50' : 'bg-gray-500/30',
+    text: theme === 'dark' ? 'text-white/80' : 'text-black/80',
+    outsideLabelBg: theme === 'dark' ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+    rotateButtonBg: theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-200',
+    rotateButtonText: theme === 'dark' ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-500 hover:text-cyan-600',
+  };
+
   return (
     <div
       onMouseDown={(e) => onMouseDown(e, monitor.id)}
-      className={`absolute bg-black/50 border-2 rounded-sm select-none transition-shadow duration-200 group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`absolute border-2 rounded-sm select-none transition-shadow duration-200 group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} ${themeClasses.bg}`}
       style={{
         width: `${width}px`,
         height: `${height}px`,
@@ -62,7 +73,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
       }}
     >
       <div 
-        className="pointer-events-none absolute text-white/80"
+        className={`pointer-events-none absolute ${themeClasses.text}`}
         style={{
           fontSize: '10px',
           lineHeight: '1.2',
@@ -73,7 +84,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
                 right: '100%',
                 bottom: '100%',
                 padding: '4px 6px',
-                backgroundColor: 'rgba(31, 41, 55, 0.9)', // bg-gray-700/90
+                backgroundColor: themeClasses.outsideLabelBg,
                 borderRadius: '4px',
                 marginBottom: '4px',
                 marginRight: '4px',
@@ -93,7 +104,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
       </div>
       <button
           onClick={(e) => { e.stopPropagation(); onRotate(monitor.id); }}
-          className="absolute -top-2 -right-2 bg-gray-800 p-1.5 rounded-full text-gray-400 hover:text-cyan-400 hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100"
+          className={`absolute -top-2 -right-2 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 ${themeClasses.rotateButtonBg} ${themeClasses.rotateButtonText}`}
           title="Rotate"
       >
           <RotateIcon />

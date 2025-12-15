@@ -3,21 +3,30 @@ import React, { useState } from 'react';
 import { Monitor } from '../types';
 import { DIAGONAL_PRESETS, ASPECT_RATIO_PRESETS, RESOLUTION_PRESETS } from '../constants';
 
+type Theme = 'light' | 'dark';
+
 interface MonitorFormProps {
   onAddMonitor: (monitor: Omit<Monitor, 'id' | 'name' | 'ppi' | 'widthInches' | 'heightInches' | 'isVisible' | 'isPortrait' | 'position' | 'zIndex' | 'color'>) => void;
+  theme: Theme;
 }
 
-const CustomInput: React.FC<{ value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; type?: string }> = ({ value, onChange, placeholder, type = 'number' }) => (
-  <input
-    type={type}
-    placeholder={placeholder}
-    value={value}
-    onChange={onChange}
-    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
-  />
-);
+const CustomInput: React.FC<{ value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; theme: Theme; type?: string }> = ({ value, onChange, placeholder, theme, type = 'number' }) => {
+  const themeClasses = theme === 'dark' 
+    ? 'bg-gray-700 border-gray-600 focus:border-cyan-500 focus:ring-cyan-500' 
+    : 'bg-gray-100 border-gray-300 focus:border-cyan-500 focus:ring-cyan-500';
+  
+  return (
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-1 transition-colors ${themeClasses}`}
+    />
+  );
+};
 
-const MonitorForm: React.FC<MonitorFormProps> = ({ onAddMonitor }) => {
+const MonitorForm: React.FC<MonitorFormProps> = ({ onAddMonitor, theme }) => {
   const [diagonal, setDiagonal] = useState('27');
   const [aspectW, setAspectW] = useState('16');
   const [aspectH, setAspectH] = useState('9');
@@ -46,47 +55,54 @@ const MonitorForm: React.FC<MonitorFormProps> = ({ onAddMonitor }) => {
     setResH(h.toString());
   };
 
+  const themeClasses = {
+    label: theme === 'dark' ? 'text-gray-400' : 'text-gray-600',
+    colon: theme === 'dark' ? 'text-gray-500' : 'text-gray-400',
+    presetButton: theme === 'dark' ? 'bg-gray-700 hover:bg-cyan-500/20 hover:text-cyan-300' : 'bg-gray-200 hover:bg-cyan-500/20 hover:text-cyan-500',
+    addButton: theme === 'dark' ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-cyan-500 hover:bg-cyan-600 text-white',
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Diagonal (inches)</label>
-        <CustomInput value={diagonal} onChange={(e) => setDiagonal(e.target.value)} placeholder="e.g. 27" />
+        <label className={`block text-sm font-medium mb-2 ${themeClasses.label}`}>Diagonal (inches)</label>
+        <CustomInput value={diagonal} onChange={(e) => setDiagonal(e.target.value)} placeholder="e.g. 27" theme={theme} />
         <div className="flex flex-wrap gap-2 mt-2">
           {DIAGONAL_PRESETS.map(d => (
-            <button type="button" key={d} onClick={() => setDiagonal(d.toString())} className="px-2 py-1 text-xs bg-gray-700 hover:bg-cyan-500/20 hover:text-cyan-300 rounded transition-colors">{d}"</button>
+            <button type="button" key={d} onClick={() => setDiagonal(d.toString())} className={`px-2 py-1 text-xs rounded transition-colors ${themeClasses.presetButton}`}>{d}"</button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Aspect Ratio</label>
+        <label className={`block text-sm font-medium mb-2 ${themeClasses.label}`}>Aspect Ratio</label>
         <div className="flex items-center gap-2">
-          <CustomInput value={aspectW} onChange={(e) => setAspectW(e.target.value)} placeholder="W" />
-          <span className="text-gray-500">:</span>
-          <CustomInput value={aspectH} onChange={(e) => setAspectH(e.target.value)} placeholder="H" />
+          <CustomInput value={aspectW} onChange={(e) => setAspectW(e.target.value)} placeholder="W" theme={theme}/>
+          <span className={themeClasses.colon}>:</span>
+          <CustomInput value={aspectH} onChange={(e) => setAspectH(e.target.value)} placeholder="H" theme={theme}/>
         </div>
         <div className="flex flex-wrap gap-2 mt-2">
           {ASPECT_RATIO_PRESETS.map(ar => (
-            <button type="button" key={ar.name} onClick={() => setAspectRatio(ar.w, ar.h)} className="px-2 py-1 text-xs bg-gray-700 hover:bg-cyan-500/20 hover:text-cyan-300 rounded transition-colors">{ar.name}</button>
+            <button type="button" key={ar.name} onClick={() => setAspectRatio(ar.w, ar.h)} className={`px-2 py-1 text-xs rounded transition-colors ${themeClasses.presetButton}`}>{ar.name}</button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Resolution</label>
+        <label className={`block text-sm font-medium mb-2 ${themeClasses.label}`}>Resolution</label>
         <div className="flex items-center gap-2">
-          <CustomInput value={resW} onChange={(e) => setResW(e.target.value)} placeholder="Width" />
-          <span className="text-gray-500">x</span>
-          <CustomInput value={resH} onChange={(e) => setResH(e.target.value)} placeholder="Height" />
+          <CustomInput value={resW} onChange={(e) => setResW(e.target.value)} placeholder="Width" theme={theme}/>
+          <span className={themeClasses.colon}>x</span>
+          <CustomInput value={resH} onChange={(e) => setResH(e.target.value)} placeholder="Height" theme={theme}/>
         </div>
         <div className="flex flex-wrap gap-2 mt-2">
           {RESOLUTION_PRESETS.map(r => (
-            <button type="button" key={r.name} onClick={() => setResolution(r.w, r.h)} className="px-2 py-1 text-xs bg-gray-700 hover:bg-cyan-500/20 hover:text-cyan-300 rounded transition-colors">{r.name}</button>
+            <button type="button" key={r.name} onClick={() => setResolution(r.w, r.h)} className={`px-2 py-1 text-xs rounded transition-colors ${themeClasses.presetButton}`}>{r.name}</button>
           ))}
         </div>
       </div>
 
-      <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded transition-all transform hover:scale-105">
+      <button type="submit" className={`w-full font-bold py-2 px-4 rounded transition-all transform hover:scale-105 ${themeClasses.addButton}`}>
         Add Monitor
       </button>
     </form>
