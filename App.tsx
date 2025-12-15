@@ -231,7 +231,7 @@ const App: React.FC = () => {
         {isSidebarOpen && (
           <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
         )}
-        <aside className={`fixed top-0 left-0 w-full max-w-sm h-full p-4 flex-shrink-0 flex flex-col gap-4 z-40 transition-all duration-300 ease-in-out lg:relative lg:max-w-none lg:p-0 bg-transparent lg:translate-x-0 overflow-hidden ${isSidebarOpen ? `translate-x-0 ${themeClasses.sidebarBg}` : '-translate-x-full'} ${isSidebarVisibleDesktop ? 'lg:w-96 xl:w-[420px]' : 'lg:w-0 lg:p-0'}`}>
+        <aside className={`fixed top-0 left-0 w-full max-w-sm h-full p-4 flex-shrink-0 flex flex-col gap-4 z-40 transition-all duration-300 ease-in-out lg:relative lg:max-w-none lg:p-0 bg-transparent lg:translate-x-0 overflow-y-auto ${isSidebarOpen ? `translate-x-0 ${themeClasses.sidebarBg}` : '-translate-x-full'} ${isSidebarVisibleDesktop ? 'lg:w-96 xl:w-[420px]' : 'lg:w-0 lg:p-0'}`}>
           <div className={`backdrop-blur-sm border rounded-md p-4 space-y-4 flex flex-col ${themeClasses.cardBg} ${themeClasses.border}`}>
             <div className="flex justify-between items-center">
               <h2 className={`text-lg font-bold ${themeClasses.accentText}`}>Monitor Specs</h2>
@@ -241,7 +241,7 @@ const App: React.FC = () => {
             </div>
             <MonitorForm onAddMonitor={addMonitor} theme={theme} />
           </div>
-          <div className={`backdrop-blur-sm border rounded-md p-4 flex-grow flex flex-col min-h-0 ${themeClasses.cardBg} ${themeClasses.border}`}>
+          <div className={`backdrop-blur-sm border rounded-md p-4 flex-grow flex flex-col min-h-[250px] ${themeClasses.cardBg} ${themeClasses.border}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className={`text-lg font-bold ${themeClasses.accentText}`}>Monitor List</h2>
               <div className={`flex items-center gap-1 p-0.5 rounded-md border ${themeClasses.kbdButtonBg} ${themeClasses.border}`}>

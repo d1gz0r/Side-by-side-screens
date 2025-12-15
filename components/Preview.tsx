@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Monitor } from '../types';
 import MonitorDisplay from './MonitorDisplay';
-import { KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, PIXELS_PER_INCH, KEYBOARD_COLOR } from '../constants';
+import { KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, PIXELS_PER_INCH, KEYBOARD_COLOR, SNAP_THRESHOLD } from '../constants';
 import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon } from './Icons';
 
 type Theme = 'light' | 'dark';
@@ -21,10 +21,11 @@ const Keyboard: React.FC<{
   size: '100%' | '75%';
   position: { x: number; y: number };
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onTouchStart: (e: React.TouchEvent<HTMLDivElement>) => void;
   isDragging: boolean;
   scale: number;
   theme: Theme;
-}> = ({ size, position, onMouseDown, isDragging, scale, theme }) => {
+}> = ({ size, position, onMouseDown, onTouchStart, isDragging, scale, theme }) => {
   const dimensions = size === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
   const width = dimensions.width * PIXELS_PER_INCH;
   const height = dimensions.height * PIXELS_PER_INCH;
@@ -37,6 +38,7 @@ const Keyboard: React.FC<{
   return (
     <div
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       className={`absolute border-2 rounded-sm select-none transition-shadow duration-200 flex items-center justify-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
         width: `${width}px`,
@@ -73,6 +75,7 @@ const Preview: React.FC<PreviewProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
+  const pinchDistRef = useRef<number | null>(null);
 
   const handleZoom = (delta: number, clientX?: number, clientY?: number) => {
     const preview = previewRef.current;
@@ -93,6 +96,7 @@ const Preview: React.FC<PreviewProps> = ({
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    // Standard mouse wheel and trackpad pinch zoom
     handleZoom(e.deltaY > 0 ? 0.9 : 1.1, e.clientX, e.clientY);
   };
 
@@ -101,18 +105,16 @@ const Preview: React.FC<PreviewProps> = ({
     setPan({ x: 20, y: 20 });
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>, id: string, type: 'monitor' | 'keyboard') => {
-    e.preventDefault();
-    e.stopPropagation();
+  const startDragging = useCallback((clientX: number, clientY: number, id: string, type: 'monitor' | 'keyboard') => {
     const targetPosition = type === 'monitor' ? monitors.find(m => m.id === id)?.position : keyboardPosition;
     if (!targetPosition) return;
-
+  
     const previewRect = previewRef.current?.getBoundingClientRect();
     if (!previewRect) return;
-
-    const mouseX = (e.clientX - previewRect.left - pan.x) / scale;
-    const mouseY = (e.clientY - previewRect.top - pan.y) / scale;
-
+  
+    const mouseX = (clientX - previewRect.left - pan.x) / scale;
+    const mouseY = (clientY - previewRect.top - pan.y) / scale;
+  
     setDragging({
       id,
       type,
@@ -122,16 +124,36 @@ const Preview: React.FC<PreviewProps> = ({
       },
     });
   }, [monitors, keyboardPosition, scale, pan]);
-
-  const handlePreviewMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.currentTarget !== e.target) return;
+  
+  const startPanning = useCallback((clientX: number, clientY: number) => {
     setIsPanning(true);
-    setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    setPanStart({ x: clientX - pan.x, y: clientY - pan.y });
   }, [pan]);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleInteractionEnd = useCallback(() => {
+    setDragging(null);
+    setIsPanning(false);
+    pinchDistRef.current = null;
+  }, []);
+
+  const handleInteractionMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if ('touches' in e && e.touches.length === 2 && pinchDistRef.current !== null) {
+        const p1 = e.touches[0];
+        const p2 = e.touches[1];
+        const newDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        const midX = (p1.clientX + p2.clientX) / 2;
+        const midY = (p1.clientY + p2.clientY) / 2;
+        handleZoom(newDist / pinchDistRef.current, midX, midY);
+        pinchDistRef.current = newDist;
+        return;
+    }
+
+    const point = 'touches' in e ? e.touches[0] : e;
+    if (!point) return;
+    const { clientX, clientY } = point;
+
     if (isPanning) {
-      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+      setPan({ x: clientX - panStart.x, y: clientY - panStart.y });
       return;
     }
     
@@ -140,33 +162,116 @@ const Preview: React.FC<PreviewProps> = ({
     const previewRect = previewRef.current?.getBoundingClientRect();
     if (!previewRect) return;
 
-    const newX = (e.clientX - previewRect.left - pan.x) / scale - dragging.offset.x;
-    const newY = (e.clientY - previewRect.top - pan.y) / scale - dragging.offset.y;
+    const newX = (clientX - previewRect.left - pan.x) / scale - dragging.offset.x;
+    const newY = (clientY - previewRect.top - pan.y) / scale - dragging.offset.y;
 
     if (dragging.type === 'monitor') {
       onUpdateMonitor(dragging.id, { position: { x: newX, y: newY } });
     } else if (dragging.type === 'keyboard') {
-      onUpdateKeyboardPosition({ x: newX, y: newY });
-    }
-  }, [dragging, isPanning, panStart, scale, pan, onUpdateMonitor, onUpdateKeyboardPosition]);
+      if (keyboardSize === 'hidden') {
+        onUpdateKeyboardPosition({ x: newX, y: newY });
+        return;
+      }
+      
+      const dimensions = keyboardSize === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
+      const kbdWidth = dimensions.width * PIXELS_PER_INCH;
+      const kbdHeight = dimensions.height * PIXELS_PER_INCH;
+      
+      const kbdEdges = {
+        left: newX, right: newX + kbdWidth, top: newY, bottom: newY + kbdHeight,
+        centerX: newX + kbdWidth / 2, centerY: newY + kbdHeight / 2,
+      };
 
-  const handleMouseUp = useCallback(() => {
-    setDragging(null);
-    setIsPanning(false);
-  }, []);
+      let bestSnapX = { delta: SNAP_THRESHOLD, value: newX };
+      let bestSnapY = { delta: SNAP_THRESHOLD, value: newY };
+
+      for (const monitor of monitors) {
+        if (!monitor.isVisible) continue;
+        const monitorRect = getMonitorRect(monitor);
+        const monEdges = {
+          left: monitorRect.left, right: monitorRect.right, top: monitorRect.top, bottom: monitorRect.bottom,
+          centerX: monitorRect.left + monitorRect.width / 2, centerY: monitorRect.top + monitorRect.height / 2,
+        };
+
+        const xChecks = [
+          { kbd: kbdEdges.left, mon: monEdges.left, newPos: monEdges.left },
+          { kbd: kbdEdges.left, mon: monEdges.right, newPos: monEdges.right },
+          { kbd: kbdEdges.right, mon: monEdges.left, newPos: monEdges.left - kbdWidth },
+          { kbd: kbdEdges.right, mon: monEdges.right, newPos: monEdges.right - kbdWidth },
+          { kbd: kbdEdges.centerX, mon: monEdges.centerX, newPos: monEdges.centerX - kbdWidth / 2 },
+        ];
+        for (const check of xChecks) {
+          const delta = Math.abs(check.kbd - check.mon);
+          if (delta < bestSnapX.delta) bestSnapX = { delta, value: check.newPos };
+        }
+
+        const yChecks = [
+          { kbd: kbdEdges.top, mon: monEdges.top, newPos: monEdges.top },
+          { kbd: kbdEdges.top, mon: monEdges.bottom, newPos: monEdges.bottom },
+          { kbd: kbdEdges.bottom, mon: monEdges.top, newPos: monEdges.top - kbdHeight },
+          { kbd: kbdEdges.bottom, mon: monEdges.bottom, newPos: monEdges.bottom - kbdHeight },
+          { kbd: kbdEdges.centerY, mon: monEdges.centerY, newPos: monEdges.centerY - kbdHeight / 2 },
+        ];
+        for (const check of yChecks) {
+          const delta = Math.abs(check.kbd - check.mon);
+          if (delta < bestSnapY.delta) bestSnapY = { delta, value: check.newPos };
+        }
+      }
+      
+      onUpdateKeyboardPosition({ x: bestSnapX.value, y: bestSnapY.value });
+    }
+  }, [dragging, isPanning, panStart, scale, pan, onUpdateMonitor, onUpdateKeyboardPosition, monitors, keyboardSize]);
 
   useEffect(() => {
-    const handleMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleUp = () => handleMouseUp();
+    const handleMove = (e: MouseEvent) => handleInteractionMove(e);
+    const handleUp = () => handleInteractionEnd();
+    const handleTouchMove = (e: TouchEvent) => {
+        if (isPanning || dragging || pinchDistRef.current !== null) {
+            e.preventDefault();
+        }
+        handleInteractionMove(e);
+    };
 
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleUp);
+    window.addEventListener('touchcancel', handleUp);
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleUp);
+      window.removeEventListener('touchcancel', handleUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleInteractionMove, handleInteractionEnd, isPanning, dragging]);
   
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string, type: 'monitor' | 'keyboard') => {
+    e.preventDefault(); e.stopPropagation();
+    startDragging(e.clientX, e.clientY, id, type);
+  };
+  
+  const handlePreviewMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.currentTarget === e.target) startPanning(e.clientX, e.clientY);
+  };
+
+  const handleItemTouchStart = (e: React.TouchEvent<HTMLDivElement>, id: string, type: 'monitor' | 'keyboard') => {
+    e.stopPropagation();
+    if (e.touches.length === 1) startDragging(e.touches[0].clientX, e.touches[0].clientY, id, type);
+  };
+  
+  const handlePreviewTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        setIsPanning(false); setDragging(null);
+        const p1 = e.touches[0];
+        const p2 = e.touches[1];
+        pinchDistRef.current = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+    } else if (e.touches.length === 1 && e.currentTarget === e.target) {
+        startPanning(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
   const getMonitorRect = (monitor: Monitor) => {
     const width = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
     const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
@@ -203,7 +308,6 @@ const Preview: React.FC<PreviewProps> = ({
     return false;
   }, [monitors]);
 
-
   const themeClasses = {
     bg: theme === 'dark' ? 'bg-gray-950/60' : 'bg-slate-50/60',
     grid: theme === 'dark' ? 'bg-[radial-gradient(#27272a_1px,transparent_1px)]' : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)]',
@@ -215,10 +319,11 @@ const Preview: React.FC<PreviewProps> = ({
       ref={previewRef}
       onWheel={handleWheel}
       onMouseDown={handlePreviewMouseDown}
-      className={`w-full h-full overflow-hidden relative backdrop-blur-sm ${themeClasses.bg} ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+      onTouchStart={handlePreviewTouchStart}
+      className={`w-full h-full overflow-hidden relative backdrop-blur-sm touch-none ${themeClasses.bg} ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
     >
       <div 
-        className={`absolute top-0 left-0 w-full h-full bg-[size:20px_20px] opacity-50 ${themeClasses.grid}`} 
+        className={`absolute top-0 left-0 w-full h-full bg-[size:20px_20px] opacity-50 pointer-events-none ${themeClasses.grid}`} 
         style={{ backgroundPosition: `${pan.x}px ${pan.y}px` }}
       />
       <div
@@ -233,6 +338,7 @@ const Preview: React.FC<PreviewProps> = ({
             isDragging={dragging?.id === monitor.id}
             isObscured={isObscured(monitor.id)}
             onMouseDown={(e, id) => handleMouseDown(e, id, 'monitor')}
+            onTouchStart={(e, id) => handleItemTouchStart(e, id, 'monitor')}
             onRotate={(id) => onUpdateMonitor(id, { isPortrait: !monitor.isPortrait })}
             onDelete={onDelete}
             theme={theme}
@@ -243,6 +349,7 @@ const Preview: React.FC<PreviewProps> = ({
             size={keyboardSize}
             position={keyboardPosition}
             onMouseDown={(e) => handleMouseDown(e, 'keyboard', 'keyboard')}
+            onTouchStart={(e) => handleItemTouchStart(e, 'keyboard', 'keyboard')}
             isDragging={dragging?.id === 'keyboard'}
             scale={scale}
             theme={theme}

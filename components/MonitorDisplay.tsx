@@ -12,12 +12,13 @@ interface MonitorDisplayProps {
   isDragging: boolean;
   isObscured: boolean;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
+  onTouchStart: (e: React.TouchEvent<HTMLDivElement>, id: string) => void;
   onRotate: (id: string) => void;
   onDelete: (id: string) => void;
   theme: Theme;
 }
 
-const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate, onDelete, theme }) => {
+const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onTouchStart, onRotate, onDelete, theme }) => {
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   
@@ -25,20 +26,28 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
   const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
 
   useLayoutEffect(() => {
-    if (textRef.current) {
-      const textWidth = textRef.current.scrollWidth;
-      const textHeight = textRef.current.scrollHeight;
-      const padding = 16; 
+    const checkOverflow = () => {
+      if (textRef.current) {
+        const textWidth = textRef.current.scrollWidth;
+        const textHeight = textRef.current.scrollHeight;
+        const padding = 16; 
 
-      const monitorVisibleWidth = width * scale;
-      const monitorVisibleHeight = height * scale;
+        const monitorVisibleWidth = width * scale;
+        const monitorVisibleHeight = height * scale;
 
-      if (textWidth > monitorVisibleWidth - padding || textHeight > monitorVisibleHeight - padding) {
-        setIsOverflowing(true);
-      } else {
-        setIsOverflowing(false);
+        const newIsOverflowing = textWidth > monitorVisibleWidth - padding || textHeight > monitorVisibleHeight - padding;
+        setIsOverflowing(newIsOverflowing);
       }
-    }
+    };
+
+    // Run check immediately for initial layout
+    checkOverflow();
+
+    // Also run the check after web fonts are ready. This handles race conditions
+    // where the initial layout is calculated with a fallback font, which may
+    // have different dimensions from the final loaded font.
+    document.fonts.ready.then(checkOverflow);
+    
   }, [width, height, scale, monitor.name, monitor.diagonal, monitor.resolution]);
 
   const textContent = (
@@ -65,6 +74,7 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
   return (
     <div
       onMouseDown={(e) => onMouseDown(e, monitor.id)}
+      onTouchStart={(e) => onTouchStart(e, monitor.id)}
       className={`absolute border-2 rounded-sm select-none transition-shadow duration-200 group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} ${themeClasses.bg}`}
       style={{
         width: `${width}px`,
