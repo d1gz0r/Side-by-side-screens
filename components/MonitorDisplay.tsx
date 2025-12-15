@@ -2,7 +2,7 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { Monitor } from '../types';
 import { PIXELS_PER_INCH } from '../constants';
-import { RotateIcon } from './Icons';
+import { RotateIcon, DeleteIcon } from './Icons';
 
 type Theme = 'light' | 'dark';
 
@@ -13,10 +13,11 @@ interface MonitorDisplayProps {
   isObscured: boolean;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
   onRotate: (id: string) => void;
+  onDelete: (id: string) => void;
   theme: Theme;
 }
 
-const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate, theme }) => {
+const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragging, isObscured, onMouseDown, onRotate, onDelete, theme }) => {
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   
@@ -55,8 +56,10 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
     text: theme === 'dark' ? 'text-white/80' : 'text-slate-900/80',
     outsideLabelBg: theme === 'dark' ? 'rgba(10, 10, 10, 0.9)' : 'rgba(248, 250, 252, 0.9)',
     outsideLabelBorder: theme === 'dark' ? 'border border-gray-800' : 'border border-slate-200',
-    rotateButtonBg: theme === 'dark' ? 'bg-gray-900 hover:bg-gray-800' : 'bg-white hover:bg-slate-200',
-    rotateButtonText: theme === 'dark' ? 'text-gray-400 hover:text-cyan-400' : 'text-slate-500 hover:text-cyan-500',
+    actionButtonBg: theme === 'dark' ? 'bg-gray-900' : 'bg-white',
+    actionButtonBorder: theme === 'dark' ? 'border-gray-700' : 'border-slate-300',
+    rotateButtonText: theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-cyan-400' : 'text-slate-500 hover:bg-slate-200 hover:text-cyan-500',
+    deleteButtonText: theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-red-500' : 'text-slate-500 hover:bg-slate-200 hover:text-red-500',
   };
 
   return (
@@ -105,11 +108,19 @@ const MonitorDisplay: React.FC<MonitorDisplayProps> = ({ monitor, scale, isDragg
       </div>
       <button
           onClick={(e) => { e.stopPropagation(); onRotate(monitor.id); }}
-          className={`absolute top-0 right-0 p-1 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} ${themeClasses.rotateButtonBg} ${themeClasses.rotateButtonText}`}
+          className={`absolute top-0 right-0 p-1 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 border ${themeClasses.actionButtonBorder} ${themeClasses.actionButtonBg} ${themeClasses.rotateButtonText}`}
           style={{ transform: 'translate(50%, -50%)'}}
           title="Rotate"
       >
           <RotateIcon />
+      </button>
+      <button
+          onClick={(e) => { e.stopPropagation(); onDelete(monitor.id); }}
+          className={`absolute top-0 left-0 p-1 rounded-full transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 border ${themeClasses.actionButtonBorder} ${themeClasses.actionButtonBg} ${themeClasses.deleteButtonText}`}
+          style={{ transform: 'translate(-50%, -50%)'}}
+          title="Delete"
+      >
+          <DeleteIcon />
       </button>
     </div>
   );

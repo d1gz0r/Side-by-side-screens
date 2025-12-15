@@ -9,6 +9,63 @@ import { KeyboardIcon, MenuIcon, CloseIcon, ChevronLeftIcon, ChevronRightIcon, S
 
 type Theme = 'light' | 'dark';
 
+const createDefaultMonitors = (): Monitor[] => {
+  // Monitor 1: 27" QHD Landscape
+  const monitor1Diag = 27;
+  const monitor1AR = { w: 16, h: 9 };
+  const monitor1Res = { w: 2560, h: 1440 };
+  const m1DiagPx = Math.sqrt(monitor1Res.w ** 2 + monitor1Res.h ** 2);
+  const m1Ppi = m1DiagPx / monitor1Diag;
+  const m1Ratio = Math.sqrt(monitor1AR.w ** 2 + monitor1AR.h ** 2);
+  const m1WidthInches = (monitor1Diag * monitor1AR.w) / m1Ratio;
+  const m1HeightInches = (monitor1Diag * monitor1AR.h) / m1Ratio;
+
+  const monitor1: Monitor = {
+    id: 'monitor-1',
+    name: 'Sample monitor 1',
+    diagonal: monitor1Diag,
+    aspectRatio: monitor1AR,
+    resolution: monitor1Res,
+    ppi: m1Ppi,
+    widthInches: m1WidthInches,
+    heightInches: m1HeightInches,
+    isVisible: true,
+    isPortrait: false,
+    position: { x: 100, y: 150 },
+    zIndex: 2,
+    color: MONITOR_COLORS[0],
+  };
+
+  // Monitor 2: 24" FHD Portrait
+  const monitor2Diag = 24;
+  const monitor2AR = { w: 16, h: 9 };
+  const monitor2Res = { w: 1920, h: 1080 };
+  const m2DiagPx = Math.sqrt(monitor2Res.w ** 2 + monitor2Res.h ** 2);
+  const m2Ppi = m2DiagPx / monitor2Diag;
+  const m2Ratio = Math.sqrt(monitor2AR.w ** 2 + monitor2AR.h ** 2);
+  const m2WidthInches = (monitor2Diag * monitor2AR.w) / m2Ratio;
+  const m2HeightInches = (monitor2Diag * monitor2AR.h) / m2Ratio;
+  
+  const monitor2: Monitor = {
+    id: 'monitor-2',
+    name: 'Sample monitor 2',
+    diagonal: monitor2Diag,
+    aspectRatio: monitor2AR,
+    resolution: monitor2Res,
+    ppi: m2Ppi,
+    widthInches: m2WidthInches,
+    heightInches: m2HeightInches,
+    isVisible: true,
+    isPortrait: true,
+    position: { x: 400, y: 100 },
+    zIndex: 1,
+    color: MONITOR_COLORS[1],
+  };
+
+  return [monitor1, monitor2];
+};
+
+
 const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void }> = ({ theme, setTheme }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -66,8 +123,8 @@ const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void }
 };
 
 const App: React.FC = () => {
-  const [monitors, setMonitors] = useState<Monitor[]>([]);
-  const [nextId, setNextId] = useState(1);
+  const [monitors, setMonitors] = useState<Monitor[]>(createDefaultMonitors);
+  const [nextId, setNextId] = useState(3);
   const [keyboardSize, setKeyboardSize] = useState<'hidden' | '100%' | '75%'>('hidden');
   const [keyboardPosition, setKeyboardPosition] = useState({ x: 20, y: 350 });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -136,6 +193,7 @@ const App: React.FC = () => {
     
     setMonitors(prev => [...prev, newMonitor]);
     setNextId(prev => prev + 1);
+    setIsSidebarOpen(false);
   }, [nextId, monitors]);
 
   const deleteMonitor = useCallback((id: string) => setMonitors(prev => prev.filter(m => m.id !== id)), []);
@@ -203,7 +261,7 @@ const App: React.FC = () => {
           <button onClick={() => setIsSidebarVisibleDesktop(v => !v)} title={isSidebarVisibleDesktop ? 'Collapse Sidebar' : 'Expand Sidebar'} className={`hidden lg:flex items-center justify-center absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-20 w-7 h-7 rounded-full transition-all border-2 ${themeClasses.sidebarToggleBg} hover:bg-cyan-500/20`}>
             {isSidebarVisibleDesktop ? <ChevronLeftIcon className={themeClasses.sidebarToggleIcon} /> : <ChevronRightIcon className={themeClasses.sidebarToggleIcon} />}
           </button>
-          <Preview monitors={monitors} keyboardSize={keyboardSize} onUpdateMonitor={updateMonitorConfig} keyboardPosition={keyboardPosition} onUpdateKeyboardPosition={updateKeyboardPosition} theme={theme} />
+          <Preview monitors={monitors} keyboardSize={keyboardSize} onUpdateMonitor={updateMonitorConfig} onDelete={deleteMonitor} keyboardPosition={keyboardPosition} onUpdateKeyboardPosition={updateKeyboardPosition} theme={theme} />
         </main>
       </div>
     </div>

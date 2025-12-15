@@ -11,6 +11,7 @@ interface PreviewProps {
   monitors: Monitor[];
   keyboardSize: 'hidden' | '100%' | '75%';
   onUpdateMonitor: (id: string, newConfig: Partial<Monitor>) => void;
+  onDelete: (id: string) => void;
   keyboardPosition: { x: number; y: number };
   onUpdateKeyboardPosition: (position: { x: number; y: number }) => void;
   theme: Theme;
@@ -61,6 +62,7 @@ const Preview: React.FC<PreviewProps> = ({
   monitors,
   keyboardSize,
   onUpdateMonitor,
+  onDelete,
   keyboardPosition,
   onUpdateKeyboardPosition,
   theme,
@@ -232,6 +234,7 @@ const Preview: React.FC<PreviewProps> = ({
             isObscured={isObscured(monitor.id)}
             onMouseDown={(e, id) => handleMouseDown(e, id, 'monitor')}
             onRotate={(id) => onUpdateMonitor(id, { isPortrait: !monitor.isPortrait })}
+            onDelete={onDelete}
             theme={theme}
           />
         ))}
