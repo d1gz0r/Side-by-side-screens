@@ -80,7 +80,7 @@ const MonitorList: React.FC<MonitorListProps> = ({ monitors, onDelete, onUpdateM
   }
 
   return (
-    <div className="space-y-3 max-h-[calc(100vh-300px)] lg:max-h-full overflow-y-auto pr-1">
+    <div className="space-y-3 overflow-y-auto pr-1 flex-grow">
       {monitors.map(monitor => (
         <MonitorListItem 
           key={monitor.id}

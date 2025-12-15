@@ -44,6 +44,50 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const [scale, setScale] = useState(1);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!previewRef.current) return;
+    const resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        setViewportSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    resizeObserver.observe(previewRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const canvasSize = useMemo(() => {
+    let contentMaxX = 0;
+    let contentMaxY = 0;
+
+    monitors.filter(m => m.isVisible).forEach(monitor => {
+      const width = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
+      const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
+      contentMaxX = Math.max(contentMaxX, monitor.position.x + width);
+      contentMaxY = Math.max(contentMaxY, monitor.position.y + height);
+    });
+
+    if (keyboardSize !== 'hidden') {
+      const dimensions = keyboardSize === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
+      const keyboardWidth = dimensions.width * PIXELS_PER_INCH;
+      const keyboardHeight = dimensions.height * PIXELS_PER_INCH;
+      contentMaxX = Math.max(contentMaxX, keyboardPosition.x + keyboardWidth);
+      contentMaxY = Math.max(contentMaxY, keyboardPosition.y + keyboardHeight);
+    }
+    
+    const padding = 200;
+    const scaledViewportWidth = viewportSize.width / scale;
+    const scaledViewportHeight = viewportSize.height / scale;
+
+    return {
+      width: Math.max(scaledViewportWidth, contentMaxX + padding),
+      height: Math.max(scaledViewportHeight, contentMaxY + padding),
+    };
+  }, [monitors, keyboardSize, keyboardPosition, viewportSize, scale]);
 
   const obscuredMonitors = useMemo(() => {
     const newObscured = new Set<string>();
@@ -225,8 +269,8 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
         <div 
           className="relative" 
           style={{ 
-            width: '5000px',
-            height: '5000px',
+            width: `${canvasSize.width}px`,
+            height: `${canvasSize.height}px`,
             transform: `scale(${scale})`, 
             transformOrigin: 'top left' 
           }}

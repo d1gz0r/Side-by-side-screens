@@ -5,28 +5,27 @@ import { MONITOR_COLORS } from './constants';
 import MonitorForm from './components/MonitorForm';
 import MonitorList from './components/MonitorList';
 import Preview from './components/Preview';
-import { KeyboardIcon } from './components/Icons';
+import { KeyboardIcon, MenuIcon, CloseIcon, ChevronLeftIcon, ChevronRightIcon } from './components/Icons';
 
 const App: React.FC = () => {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [nextId, setNextId] = useState(1);
   const [keyboardSize, setKeyboardSize] = useState<'hidden' | '100%' | '75%'>('hidden');
   const [keyboardPosition, setKeyboardPosition] = useState({ x: 20, y: 350 });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarVisibleDesktop, setIsSidebarVisibleDesktop] = useState(true);
 
   useEffect(() => {
     // Automatically manage z-index based on monitor size.
     // Smaller monitors should have a higher z-index to appear on top.
     if (monitors.length === 0) return;
 
-    // Create a temporary array with calculated area for sorting
     const monitorsWithArea = monitors.map(m => ({
         ...m,
         area: m.widthInches * m.heightInches,
         idNum: parseInt(m.id.split('-')[1])
     }));
     
-    // Sort by area descending (largest first).
-    // For tie-breaking, sort by ID ascending (older monitors first).
     monitorsWithArea.sort((a, b) => {
         if (a.area !== b.area) {
             return b.area - a.area;
@@ -36,12 +35,9 @@ const App: React.FC = () => {
 
     const zIndexMap = new Map<string, number>();
     monitorsWithArea.forEach((m, index) => {
-        // The largest monitor (index 0) gets zIndex 1 (bottom).
-        // The smallest monitor (index N-1) gets zIndex N (top).
         zIndexMap.set(m.id, index + 1);
     });
 
-    // Check if an update is needed to avoid re-render loops
     let needsUpdate = false;
     for (const monitor of monitors) {
         if (monitor.zIndex !== zIndexMap.get(monitor.id)) {
@@ -84,7 +80,7 @@ const App: React.FC = () => {
       isVisible: true,
       isPortrait: false,
       position: { x: 20, y: 20 + (monitors.length * 30) % 200 },
-      zIndex: 0, // Will be set by the useEffect hook
+      zIndex: 0,
       color,
     };
     
@@ -109,13 +105,24 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
-      <aside className="lg:w-96 xl:w-[420px] flex-shrink-0 flex flex-col gap-4">
+    <div className={`h-screen bg-gray-900 text-gray-200 font-sans p-4 lg:p-6 flex flex-col lg:flex-row transition-[gap] duration-300 ${isSidebarVisibleDesktop ? 'lg:gap-6' : 'lg:gap-0'}`}>
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+      <aside className={`fixed top-0 left-0 w-full max-w-sm h-full bg-gray-900 p-4 flex-shrink-0 flex-col gap-4 z-40 transition-all duration-300 ease-in-out lg:relative lg:flex lg:max-w-none lg:p-0 lg:bg-transparent lg:translate-x-0 overflow-hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isSidebarVisibleDesktop ? 'lg:w-96 xl:w-[420px]' : 'lg:w-0 lg:p-0'}`}>
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
-          <h1 className="text-2xl font-bold text-cyan-400 mb-4">Monitor Comparator</h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-cyan-400">Monitor Comparator</h1>
+            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
+              <CloseIcon />
+            </button>
+          </div>
           <MonitorForm onAddMonitor={addMonitor} />
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-4 flex-grow">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-4 flex-grow flex flex-col min-h-0">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-cyan-400">Comparison List</h2>
             <div className="flex items-center gap-1 p-0.5 bg-gray-900/50 rounded-md border border-gray-700">
@@ -148,7 +155,17 @@ const App: React.FC = () => {
           />
         </div>
       </aside>
-      <main className="flex-grow bg-gray-800/20 rounded-lg overflow-hidden relative border border-gray-700 min-h-[50vh] lg:min-h-0">
+      <main className="flex-grow bg-gray-800/20 rounded-lg relative border border-gray-700 lg:min-w-0">
+        <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden absolute top-4 left-4 z-20 p-2 bg-gray-800/70 backdrop-blur-sm rounded-md border border-gray-700 text-gray-300 hover:text-cyan-400">
+          <MenuIcon />
+        </button>
+        <button
+          onClick={() => setIsSidebarVisibleDesktop(v => !v)}
+          title={isSidebarVisibleDesktop ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          className="hidden lg:flex items-center justify-center absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-20 w-8 h-8 bg-gray-700 rounded-full text-white hover:bg-cyan-600 transition-all border-2 border-gray-900"
+        >
+          {isSidebarVisibleDesktop ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </button>
         <Preview 
           monitors={monitors} 
           keyboardSize={keyboardSize}
