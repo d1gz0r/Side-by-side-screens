@@ -1,0 +1,5 @@
+{
+  "name": "Monitor Comparator",
+  "description": "An interactive web app to compare PC monitors. Users can add monitors with custom specs, see calculated data like PPI and dimensions, and visually compare them to scale in an interactive preview area.",
+  "requestFramePermissions": []
+}
