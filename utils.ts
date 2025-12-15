@@ -1,6 +1,6 @@
 
 import { Monitor } from './types';
-import { KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, PIXELS_PER_INCH, SNAP_THRESHOLD } from './constants';
+import { PIXELS_PER_INCH, SNAP_THRESHOLD } from './constants';
 
 // Centralized math for calculating physical dimensions from resolution/diagonal
 export const calculateMonitorSpecs = (diagonal: number, aspectRatio: { w: number; h: number }, resolution: { w: number; h: number }) => {
@@ -27,24 +27,19 @@ export const getMonitorRect = (monitor: Monitor) => {
   };
 };
 
-// Complex logic to snap keyboard to monitor edges and centers
+// Complex logic to snap an object (defined by dimensions and position) to monitor edges and centers
 export const getSnappedPosition = (
   rawX: number,
   rawY: number,
-  keyboardSize: '100%' | '75%' | 'hidden',
+  objWidth: number,
+  objHeight: number,
   monitors: Monitor[]
 ) => {
-  if (keyboardSize === 'hidden') return { x: rawX, y: rawY };
-
-  const dimensions = keyboardSize === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
-  const kbdWidth = dimensions.width * PIXELS_PER_INCH;
-  const kbdHeight = dimensions.height * PIXELS_PER_INCH;
-
-  // Calculate keyboard edges based on the raw drag position
-  const kbdEdges = {
-    left: rawX, right: rawX + kbdWidth,
-    top: rawY, bottom: rawY + kbdHeight,
-    centerX: rawX + kbdWidth / 2, centerY: rawY + kbdHeight / 2,
+  // Calculate edges of the object being moved
+  const objEdges = {
+    left: rawX, right: rawX + objWidth,
+    top: rawY, bottom: rawY + objHeight,
+    centerX: rawX + objWidth / 2, centerY: rawY + objHeight / 2,
   };
 
   let bestSnapX = { delta: SNAP_THRESHOLD, value: rawX };
@@ -63,29 +58,29 @@ export const getSnappedPosition = (
 
     // Check X-axis alignment (Left, Right, Center)
     const xChecks = [
-      { kbd: kbdEdges.left, mon: monEdges.left, newPos: monEdges.left },
-      { kbd: kbdEdges.left, mon: monEdges.right, newPos: monEdges.right },
-      { kbd: kbdEdges.right, mon: monEdges.left, newPos: monEdges.left - kbdWidth },
-      { kbd: kbdEdges.right, mon: monEdges.right, newPos: monEdges.right - kbdWidth },
-      { kbd: kbdEdges.centerX, mon: monEdges.centerX, newPos: monEdges.centerX - kbdWidth / 2 },
+      { obj: objEdges.left, mon: monEdges.left, newPos: monEdges.left },
+      { obj: objEdges.left, mon: monEdges.right, newPos: monEdges.right },
+      { obj: objEdges.right, mon: monEdges.left, newPos: monEdges.left - objWidth },
+      { obj: objEdges.right, mon: monEdges.right, newPos: monEdges.right - objWidth },
+      { obj: objEdges.centerX, mon: monEdges.centerX, newPos: monEdges.centerX - objWidth / 2 },
     ];
 
     for (const check of xChecks) {
-      const delta = Math.abs(check.kbd - check.mon);
+      const delta = Math.abs(check.obj - check.mon);
       if (delta < bestSnapX.delta) bestSnapX = { delta, value: check.newPos };
     }
 
     // Check Y-axis alignment (Top, Bottom, Center)
     const yChecks = [
-      { kbd: kbdEdges.top, mon: monEdges.top, newPos: monEdges.top },
-      { kbd: kbdEdges.top, mon: monEdges.bottom, newPos: monEdges.bottom },
-      { kbd: kbdEdges.bottom, mon: monEdges.top, newPos: monEdges.top - kbdHeight },
-      { kbd: kbdEdges.bottom, mon: monEdges.bottom, newPos: monEdges.bottom - kbdHeight },
-      { kbd: kbdEdges.centerY, mon: monEdges.centerY, newPos: monEdges.centerY - kbdHeight / 2 },
+      { obj: objEdges.top, mon: monEdges.top, newPos: monEdges.top },
+      { obj: objEdges.top, mon: monEdges.bottom, newPos: monEdges.bottom },
+      { obj: objEdges.bottom, mon: monEdges.top, newPos: monEdges.top - objHeight },
+      { obj: objEdges.bottom, mon: monEdges.bottom, newPos: monEdges.bottom - objHeight },
+      { obj: objEdges.centerY, mon: monEdges.centerY, newPos: monEdges.centerY - objHeight / 2 },
     ];
 
     for (const check of yChecks) {
-      const delta = Math.abs(check.kbd - check.mon);
+      const delta = Math.abs(check.obj - check.mon);
       if (delta < bestSnapY.delta) bestSnapY = { delta, value: check.newPos };
     }
   }

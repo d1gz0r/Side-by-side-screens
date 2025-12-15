@@ -172,15 +172,29 @@ const Preview: React.FC<PreviewProps> = ({
     const newY = (clientY - previewRect.top - pan.y) / scale - dragging.offset.y;
 
     if (dragging.type === 'monitor') {
-      onUpdateMonitor(dragging.id, { position: { x: newX, y: newY } });
+      const monitor = monitors.find(m => m.id === dragging.id);
+      if (monitor) {
+        const width = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
+        const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
+        
+        // Snap to other monitors (excluding self)
+        const otherMonitors = monitors.filter(m => m.id !== dragging.id);
+        const snappedPos = getSnappedPosition(newX, newY, width, height, otherMonitors);
+        
+        onUpdateMonitor(dragging.id, { position: snappedPos });
+      }
     } else if (dragging.type === 'keyboard') {
       if (keyboardSize === 'hidden') {
         onUpdateKeyboardPosition({ x: newX, y: newY });
         return;
       }
       
-      // Use utility for complex snapping logic
-      const snappedPos = getSnappedPosition(newX, newY, keyboardSize, monitors);
+      const dimensions = keyboardSize === '100%' ? KEYBOARD_DIMENSIONS_100 : KEYBOARD_DIMENSIONS_75;
+      const width = dimensions.width * PIXELS_PER_INCH;
+      const height = dimensions.height * PIXELS_PER_INCH;
+      
+      // Snap to all monitors
+      const snappedPos = getSnappedPosition(newX, newY, width, height, monitors);
       onUpdateKeyboardPosition(snappedPos);
     }
   }, [dragging, isPanning, panStart, scale, pan, onUpdateMonitor, onUpdateKeyboardPosition, monitors, keyboardSize]);
