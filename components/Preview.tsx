@@ -9,7 +9,6 @@ interface PreviewProps {
   monitors: Monitor[];
   keyboardSize: 'hidden' | '100%' | '75%';
   onUpdateMonitor: (id: string, newConfig: Partial<Monitor>) => void;
-  nextZIndex: number;
   keyboardPosition: { x: number; y: number };
   onUpdateKeyboardPosition: (position: { x: number; y: number }) => void;
 }
@@ -41,7 +40,7 @@ const keyboardLayout75 = [
     [1.5, 1.2, 1.5, 6, 1.5, 1, 1, 1],
 ];
 
-const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonitor, nextZIndex, keyboardPosition, onUpdateKeyboardPosition }) => {
+const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonitor, keyboardPosition, onUpdateKeyboardPosition }) => {
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const [scale, setScale] = useState(1);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -88,12 +87,6 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (id !== 'keyboard') {
-      const monitor = monitors.find(m => m.id === id);
-      if (!monitor) return;
-      onUpdateMonitor(id, { zIndex: nextZIndex });
-    }
     
     const target = e.currentTarget as HTMLDivElement;
     const rect = target.getBoundingClientRect();

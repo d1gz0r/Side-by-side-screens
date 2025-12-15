@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Monitor } from './types';
 import { MONITOR_COLORS } from './constants';
 import MonitorForm from './components/MonitorForm';
@@ -11,8 +11,54 @@ const App: React.FC = () => {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [nextId, setNextId] = useState(1);
   const [keyboardSize, setKeyboardSize] = useState<'hidden' | '100%' | '75%'>('hidden');
-  const [nextZIndex, setNextZIndex] = useState(1);
   const [keyboardPosition, setKeyboardPosition] = useState({ x: 20, y: 350 });
+
+  useEffect(() => {
+    // Automatically manage z-index based on monitor size.
+    // Smaller monitors should have a higher z-index to appear on top.
+    if (monitors.length === 0) return;
+
+    // Create a temporary array with calculated area for sorting
+    const monitorsWithArea = monitors.map(m => ({
+        ...m,
+        area: m.widthInches * m.heightInches,
+        idNum: parseInt(m.id.split('-')[1])
+    }));
+    
+    // Sort by area descending (largest first).
+    // For tie-breaking, sort by ID ascending (older monitors first).
+    monitorsWithArea.sort((a, b) => {
+        if (a.area !== b.area) {
+            return b.area - a.area;
+        }
+        return a.idNum - b.idNum;
+    });
+
+    const zIndexMap = new Map<string, number>();
+    monitorsWithArea.forEach((m, index) => {
+        // The largest monitor (index 0) gets zIndex 1 (bottom).
+        // The smallest monitor (index N-1) gets zIndex N (top).
+        zIndexMap.set(m.id, index + 1);
+    });
+
+    // Check if an update is needed to avoid re-render loops
+    let needsUpdate = false;
+    for (const monitor of monitors) {
+        if (monitor.zIndex !== zIndexMap.get(monitor.id)) {
+            needsUpdate = true;
+            break;
+        }
+    }
+
+    if (needsUpdate) {
+        setMonitors(prevMonitors => 
+            prevMonitors.map(m => ({
+                ...m,
+                zIndex: zIndexMap.get(m.id) || 1
+            }))
+        );
+    }
+  }, [monitors]);
 
   const addMonitor = useCallback((newMonitorData: Omit<Monitor, 'id' | 'name' | 'ppi' | 'widthInches' | 'heightInches' | 'isVisible' | 'isPortrait' | 'position' | 'zIndex' | 'color'>) => {
     const { diagonal, aspectRatio, resolution } = newMonitorData;
@@ -38,14 +84,13 @@ const App: React.FC = () => {
       isVisible: true,
       isPortrait: false,
       position: { x: 20, y: 20 + (monitors.length * 30) % 200 },
-      zIndex: nextZIndex,
+      zIndex: 0, // Will be set by the useEffect hook
       color,
     };
     
     setMonitors(prev => [...prev, newMonitor]);
     setNextId(prev => prev + 1);
-    setNextZIndex(prev => prev + 1);
-  }, [nextId, nextZIndex, monitors]);
+  }, [nextId, monitors]);
 
   const deleteMonitor = useCallback((id: string) => {
     setMonitors(prev => prev.filter(m => m.id !== id));
@@ -57,9 +102,6 @@ const App: React.FC = () => {
   
   const updateMonitorConfig = useCallback((id: string, newConfig: Partial<Monitor>) => {
     setMonitors(prev => prev.map(m => m.id === id ? { ...m, ...newConfig } : m));
-    if (newConfig.zIndex) {
-      setNextZIndex(prev => prev + 1);
-    }
   }, []);
   
   const updateKeyboardPosition = useCallback((position: { x: number, y: number }) => {
@@ -111,7 +153,6 @@ const App: React.FC = () => {
           monitors={monitors} 
           keyboardSize={keyboardSize}
           onUpdateMonitor={updateMonitorConfig}
-          nextZIndex={nextZIndex}
           keyboardPosition={keyboardPosition}
           onUpdateKeyboardPosition={updateKeyboardPosition}
         />
