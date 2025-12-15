@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Monitor } from '../types';
 import { PIXELS_PER_INCH, KEYBOARD_DIMENSIONS_100, KEYBOARD_DIMENSIONS_75, SNAP_THRESHOLD, KEYBOARD_COLOR } from '../constants';
-import { RotateIcon, ZoomInIcon, ZoomOutIcon, ResetZoomIcon } from './Icons';
+import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon } from './Icons';
+import MonitorDisplay from './MonitorDisplay';
 
 interface PreviewProps {
   monitors: Monitor[];
@@ -113,26 +114,20 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
       // Center snapping
       if (Math.abs(draggedEdges.centerX - staticEdges.centerX) < SNAP_THRESHOLD) newX = staticEdges.centerX - draggedWidth / 2;
       if (Math.abs(draggedEdges.centerY - staticEdges.centerY) < SNAP_THRESHOLD) newY = staticEdges.centerY - draggedHeight / 2;
-
-      // Corner snapping
-      if (Math.abs(draggedEdges.left - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.right; newY = staticEdges.top; }
-      if (Math.abs(draggedEdges.left - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.left; newY = staticEdges.bottom; }
-      if (Math.abs(draggedEdges.left - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.right; newY = staticEdges.bottom; }
-      if (Math.abs(draggedEdges.right - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.left - draggedWidth; newY = staticEdges.top; }
-      if (Math.abs(draggedEdges.right - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.left - draggedWidth; newY = staticEdges.bottom; }
-      if (Math.abs(draggedEdges.right - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.top - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.right - draggedWidth; newY = staticEdges.bottom; }
-      if (Math.abs(draggedEdges.left - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.left; newY = staticEdges.top - draggedHeight; }
-      if (Math.abs(draggedEdges.left - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.right; newY = staticEdges.top - draggedHeight; }
-      if (Math.abs(draggedEdges.left - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.right; newY = staticEdges.bottom - draggedHeight; }
-      if (Math.abs(draggedEdges.right - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.left - draggedWidth; newY = staticEdges.top - draggedHeight; }
-      if (Math.abs(draggedEdges.right - staticEdges.right) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.top) < SNAP_THRESHOLD) { newX = staticEdges.right - draggedWidth; newY = staticEdges.top - draggedHeight; }
-      if (Math.abs(draggedEdges.right - staticEdges.left) < SNAP_THRESHOLD && Math.abs(draggedEdges.bottom - staticEdges.bottom) < SNAP_THRESHOLD) { newX = staticEdges.left - draggedWidth; newY = staticEdges.bottom - draggedHeight; }
     });
 
     onUpdateMonitor(dragging.id, { position: { x: newX, y: newY } });
   }, [dragging, monitors, onUpdateMonitor, onUpdateKeyboardPosition, scale]);
 
   const handleMouseUp = useCallback(() => { setDragging(null); }, []);
+
+  const handleRotate = useCallback((id: string) => {
+    const monitor = monitors.find(m => m.id === id);
+    if(monitor) {
+      onUpdateMonitor(id, { isPortrait: !monitor.isPortrait });
+    }
+  }, [monitors, onUpdateMonitor]);
+
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -186,40 +181,16 @@ const Preview: React.FC<PreviewProps> = ({ monitors, keyboardSize, onUpdateMonit
           }}
         >
           {monitors.filter(m => m.isVisible).sort((a,b) => a.zIndex - b.zIndex).map(monitor => {
-            const width = (monitor.isPortrait ? monitor.heightInches : monitor.widthInches) * PIXELS_PER_INCH;
-            const height = (monitor.isPortrait ? monitor.widthInches : monitor.heightInches) * PIXELS_PER_INCH;
             const isDragging = dragging?.id === monitor.id;
-            
             return (
-              <div
+              <MonitorDisplay
                 key={monitor.id}
-                onMouseDown={(e) => handleMouseDown(e, monitor.id)}
-                className={`absolute bg-black/50 border-2 rounded-sm select-none transition-shadow duration-200 group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                style={{
-                  width: `${width}px`,
-                  height: `${height}px`,
-                  left: `${monitor.position.x}px`,
-                  top: `${monitor.position.y}px`,
-                  zIndex: monitor.zIndex,
-                  borderColor: isDragging ? '#00ffff' : monitor.color,
-                  boxShadow: isDragging ? `0 0 20px ${monitor.color}60` : 'none',
-                }}
-              >
-                <div className="w-full h-full flex items-center justify-center p-2 text-center text-[10px] leading-tight text-white/80 pointer-events-none">
-                    <span>
-                        <b>{monitor.name}</b><br />
-                        {monitor.diagonal}"<br />
-                        {monitor.resolution.w}x{monitor.resolution.h}
-                    </span>
-                </div>
-                <button
-                    onClick={(e) => { e.stopPropagation(); onUpdateMonitor(monitor.id, { isPortrait: !monitor.isPortrait }); }}
-                    className="absolute -top-2 -right-2 bg-gray-800 p-1.5 rounded-full text-gray-400 hover:text-cyan-400 hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100"
-                    title="Rotate"
-                >
-                    <RotateIcon />
-                </button>
-              </div>
+                monitor={monitor}
+                scale={scale}
+                isDragging={isDragging}
+                onMouseDown={handleMouseDown}
+                onRotate={handleRotate}
+              />
             );
           })}
           {keyboardSize !== 'hidden' && (() => {
